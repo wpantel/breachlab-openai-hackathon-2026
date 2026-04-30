@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BreachLab Security Arena</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Codex Skill Demo</p>
+          <h1>BreachLab</h1>
+          <p class="lede">Repo-native breach rehearsal with verified patches, tests, replay, and reports.</p>
+        </div>
+        <div class="actions">
+          <button id="analyzeButton" type="button">Analyze Repo</button>
+          <button id="startMissionButton" type="button" disabled>Start Mission</button>
+          <button id="arenaButton" type="button" class="secondary" disabled>Open Arena</button>
+        </div>
+      </header>
+
+      <section class="workflow">
+        <article id="phaseDiscovery" class="phase active"><span>01</span><strong>Discovery</strong><p>Map repo surfaces and propose plausible breach simulations.</p></article>
+        <article id="phaseSelection" class="phase"><span>02</span><strong>Selection</strong><p>User chooses one candidate for confirmation.</p></article>
+        <article id="phaseMission" class="phase"><span>03</span><strong>Mission</strong><p>Agents verify, patch, test, replay, score, and report.</p></article>
+      </section>
+
+      <section class="panel discovery">
+        <div>
+          <p class="eyebrow">Discovery</p>
+          <h2 id="discoveryTitle">Ready to inspect repository</h2>
+          <p id="discoverySummary">Run discovery to generate candidate breach simulations.</p>
+        </div>
+        <div id="candidateList" class="candidate-list"></div>
+      </section>
+
+      <section class="mission-grid">
+        <article class="panel">
+          <p class="eyebrow">Mission Board</p>
+          <div id="agentBoard" class="agent-board"></div>
+        </article>
+        <article class="panel">
+          <p class="eyebrow">Attack Replay</p>
+          <ol id="timeline" class="timeline"></ol>
+        </article>
+        <article class="panel">
+          <p class="eyebrow">Scorecard</p>
+          <div id="scorecard" class="scorecard"></div>
+        </article>
+      </section>
+
+      <section class="panel benchmark">
+        <div>
+          <p class="eyebrow">Benchmark</p>
+          <h2>Workflow comparison</h2>
+        </div>
+        <div id="benchmarkRows" class="benchmark-rows"></div>
+      </section>
+    </main>
+
+    <div id="arenaModal" class="modal" aria-hidden="true">
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="arenaTitle">
+        <button id="closeArenaButton" class="close" type="button" aria-label="Close arena">x</button>
+        <h2 id="arenaTitle">Security Arena</h2>
+        <div class="arena">
+          <div id="attacker" class="fighter attacker">RED</div>
+          <div id="judge" class="judge">JUDGE</div>
+          <div id="defender" class="fighter defender">BLUE</div>
+          <div id="shield" class="shield"></div>
+        </div>
+        <div class="meters">
+          <label>Risk <span><i id="riskMeter"></i></span></label>
+          <label>Patch confidence <span><i id="patchMeter"></i></span></label>
+        </div>
+        <p id="arenaCaption" class="arena-caption">Waiting for mission event.</p>
+        <button id="nextEventButton" type="button">Next Event</button>
+      </div>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
