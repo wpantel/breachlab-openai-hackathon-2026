@@ -41,6 +41,22 @@ class RepoMapTests(unittest.TestCase):
             self.assertIn(".env.example", data["env_config_files"])
             self.assertIn("app/api/documents/[id]/route.ts", data["route_like_files"])
 
+    def test_detects_express_route_registrations(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "src").mkdir()
+            (repo / "src" / "app.js").write_text(
+                'const express = require("express"); '
+                "const app = express(); "
+                'app.get("/api/documents/:id", handler); '
+                'app.post("/api/admin/export", handler);'
+            )
+
+            data = self.run_map(repo)
+
+            self.assertIn("src/app.js", data["route_like_files"])
+            self.assertIn("src/app.js", data["routes"])
+
     def test_minimal_repo_returns_empty_lists(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)

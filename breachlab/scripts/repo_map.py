@@ -34,6 +34,11 @@ AI_RE = re.compile(r"(openai|anthropic|llm|prompt|assistant|agent|tool)", re.I)
 UPLOAD_RE = re.compile(r"(upload|multipart|formdata|multer|busboy|file)", re.I)
 SHELL_RE = re.compile(r"(child_process|exec\(|spawn\(|subprocess|os\.system)", re.I)
 FETCH_RE = re.compile(r"(fetch\(|axios|request\(|http\.get|https\.get|urlpreview|preview)", re.I)
+EXPRESS_ROUTE_RE = re.compile(
+    r"\b(?:app|router)\s*\.\s*(?:all|delete|get|head|options|patch|post|put|use)\s*\("
+    r"|\bexpress\s*\.\s*Router\s*\(",
+    re.I,
+)
 
 
 def rel(path, root):
@@ -66,6 +71,10 @@ def is_route(path):
     )
 
 
+def has_express_routes(text):
+    return bool(EXPRESS_ROUTE_RE.search(text))
+
+
 def has_any(text, patterns):
     return any(pattern.search(text) for pattern in patterns)
 
@@ -96,9 +105,14 @@ def map_repo(root):
         if path.name in MANIFEST_NAMES:
             data["manifests"].append(path_rel)
             data["dependency_manifests"].append(path_rel)
-        if is_route(path):
+        if is_route(path) or has_express_routes(text):
             data["route_like_files"].append(path_rel)
-            if "/api/" in f"/{lower}" or lower.endswith("/route.ts") or lower.endswith("/route.js"):
+            if (
+                "/api/" in f"/{lower}"
+                or lower.endswith("/route.ts")
+                or lower.endswith("/route.js")
+                or has_express_routes(text)
+            ):
                 data["routes"].append(path_rel)
         if AUTH_RE.search(path_rel) or AUTH_RE.search(text):
             data["auth_files"].append(path_rel)
