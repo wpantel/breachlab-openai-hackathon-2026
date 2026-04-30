@@ -1,0 +1,18 @@
+{
+  "id": "team-doc-idor",
+  "category": "broken_access_control",
+  "repo": "examples/sample-saas",
+  "target_files": ["src/app.js"],
+  "setup_command": "npm install",
+  "test_command": "npm test -- documents",
+  "dev_command": "npm run dev",
+  "local_url": "http://localhost:3000",
+  "success_condition": "cross-team document access is blocked",
+  "regression_required": true,
+  "computer_use_required": true,
+  "oracle": {
+    "pre_patch_attack_should_succeed": true,
+    "post_patch_attack_should_fail": true,
+    "expected_status_after_patch": 404
+  }
+}

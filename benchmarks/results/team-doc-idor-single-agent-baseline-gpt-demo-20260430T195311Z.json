@@ -1,0 +1,17 @@
+{
+  "category": "broken_access_control",
+  "challenge_id": "team-doc-idor",
+  "metrics": {
+    "breach_confirmed": true,
+    "candidate_found": true,
+    "false_positive_avoided": false,
+    "original_replay_blocked": false,
+    "patch_produced": false,
+    "regression_test_added": false,
+    "tests_passed": false
+  },
+  "model": "gpt-demo",
+  "recorded_at": "20260430T195311Z",
+  "score": 35,
+  "workflow": "single-agent-baseline"
+}
