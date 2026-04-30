@@ -18,6 +18,7 @@ breachlab/scorecards/cross-tenant-document-access.json
 breachlab/patches/cross-tenant-document-access.diff
 breachlab/evidence/cross-tenant-document-access-before.png
 breachlab/evidence/cross-tenant-document-access-after.png
+breachlab/evidence/cross-tenant-document-access-browser-replay.json
 ```
 
 ## Markdown Report Example
@@ -46,6 +47,7 @@ BreachLab confirmed a broken access control flaw in the document API. A low-priv
 - Proof type: local_test
 - Before patch: cross-team document request returned 200 and Blue Team Budget.
 - After patch: same request returned 404 and Document not found.
+- Browser replay: before and after screenshots are stored under breachlab/evidence when UI replay is available.
 
 ## Root Cause
 
@@ -79,6 +81,34 @@ Other object lookup routes should be reviewed for the same ownership pattern.
 
 - Add authorization regression tests for all routes that fetch data by object id.
 - Add anomaly detection for repeated document id probing.
+```
+
+## Browser Replay JSON
+
+```json
+{
+  "breach_id": "cross-tenant-document-access",
+  "generated_at": "2026-04-30T00:00:00.000Z",
+  "tool": "playwright",
+  "app": "Northstar Rooms",
+  "target": "localhost sample SaaS",
+  "evidence": [
+    {
+      "mode": "before",
+      "outcome": "leaked",
+      "url": "http://127.0.0.1:3177/documents/doc-blue-budget",
+      "screenshot": "breachlab/evidence/cross-tenant-document-access-before.png",
+      "observed": "A low-privilege Redwell user can view the Bluepeak Finance private document."
+    },
+    {
+      "mode": "after",
+      "outcome": "blocked",
+      "url": "http://127.0.0.1:3177/documents/doc-blue-budget",
+      "screenshot": "breachlab/evidence/cross-tenant-document-access-after.png",
+      "observed": "The same browser replay is blocked and returns a not-found state."
+    }
+  ]
+}
 ```
 
 ## Timeline JSON

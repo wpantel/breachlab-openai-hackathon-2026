@@ -25,6 +25,12 @@ Run the app in vulnerable mode:
 npm run dev
 ```
 
+Open the founder-facing demo UI:
+
+```text
+http://localhost:3000
+```
+
 Replay:
 
 ```bash
@@ -37,4 +43,38 @@ Run secure tests:
 
 ```bash
 npm test -- documents
+```
+
+## Browser Replay Evidence
+
+The sample app includes a portable Browser Replay Agent powered by Playwright.
+It launches the Northstar Rooms UI twice:
+
+- before: vulnerable mode, where `user-red` can view the Bluepeak private document
+- after: secure mode, where the same browser path is blocked
+
+Install Playwright's Chromium browser once if needed:
+
+```bash
+npx playwright install chromium
+```
+
+Run the replay:
+
+```bash
+npm run replay:browser
+```
+
+Expected artifacts:
+
+```text
+breachlab/evidence/cross-tenant-document-access-before.png
+breachlab/evidence/cross-tenant-document-access-after.png
+breachlab/evidence/cross-tenant-document-access-browser-replay.json
+```
+
+For a visible browser during the pitch:
+
+```bash
+npm run replay:browser -- --headed
 ```

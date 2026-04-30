@@ -492,6 +492,46 @@ function documentPage(document) {
   );
 }
 
+function blockedDocumentPage() {
+  return pageShell(
+    "Document not found | Northstar Rooms",
+    `<div class="app">
+      <aside class="sidebar">
+        <div class="brand"><span class="brand-mark">N</span><span>Northstar Rooms</span></div>
+        <nav class="nav" aria-label="Workspace">
+          <a href="/">Command Center</a>
+          <a class="active" href="/">Customer Docs</a>
+          <a href="/">Audit Log</a>
+        </nav>
+        <div class="tenant">
+          <strong>Redwell Health</strong>
+          Founder workspace<br />
+          Signed in as Riley Reader
+        </div>
+      </aside>
+      <main class="main">
+        <header class="topbar">
+          <div class="search">Customer document viewer</div>
+          <div class="user-chip"><span>Riley Reader</span><span class="avatar">RR</span></div>
+        </header>
+        <section class="content document-page">
+          <div class="headline">
+            <div>
+              <h1>Document not found</h1>
+              <p>The requested customer record is unavailable to this workspace.</p>
+            </div>
+            <a class="button" href="/">Back to command center</a>
+          </div>
+          <article class="document-paper">
+            <p><strong>Access blocked.</strong> Northstar Rooms does not reveal whether another tenant's private document exists.</p>
+            <p class="muted">This is the expected after-state when BreachLab replays the original cross-tenant browser path after remediation.</p>
+          </article>
+        </section>
+      </main>
+    </div>`
+  );
+}
+
 function createApp(options = {}) {
   const secureDocuments = options.secureDocuments !== false;
   const app = express();
@@ -505,10 +545,10 @@ function createApp(options = {}) {
     const user = currentUser(req) || users["user-red"];
     const document = documents[req.params.id];
     if (!document) {
-      return res.status(404).send("<h1>Document not found</h1>");
+      return res.status(404).send(blockedDocumentPage());
     }
     if (secureDocuments && document.teamId !== user.teamId) {
-      return res.status(404).send(pageShell("Document not found | Northstar Rooms", "<main><h1>Document not found</h1></main>"));
+      return res.status(404).send(blockedDocumentPage());
     }
     return res.type("html").send(documentPage(document));
   });

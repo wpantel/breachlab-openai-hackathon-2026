@@ -72,6 +72,29 @@ Output:
 }
 ```
 
+## Browser Replay Agent
+
+Responsibilities:
+
+- Use only localhost, local containers, seeded benchmark apps, or explicitly authorized staging.
+- Prefer Codex browser-use or the in-app browser when available.
+- Use a repo-provided Playwright helper when present.
+- Capture before evidence that shows the selected issue in the UI.
+- Replay the same path after remediation and capture after evidence.
+- Store screenshots and replay metadata under `breachlab/evidence/`.
+
+Output:
+
+```json
+{
+  "role": "browser_replay",
+  "tool": "playwright",
+  "before": "breachlab/evidence/cross-tenant-document-access-before.png",
+  "after": "breachlab/evidence/cross-tenant-document-access-after.png",
+  "verdict": "original browser path blocked after remediation"
+}
+```
+
 ## Forensics Agent
 
 Responsibilities:

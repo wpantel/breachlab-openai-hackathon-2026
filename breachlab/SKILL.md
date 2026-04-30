@@ -12,7 +12,7 @@ BreachLab is a defensive, repo-local breach rehearsal workflow. Use it only for 
 1. Initialize: identify repo root, app stack, package manager, likely test commands, likely dev server command, and repo-local `breachlab/config.json` preferences.
 2. Discover: run a broad, conservative scan and produce plausible breach simulations. Do not call candidates confirmed vulnerabilities.
 3. Ask: present a short candidate menu and wait for the user to choose one candidate before Phase 2.
-4. Rehearse: run Recon, Attacker, Judge, Forensics, Patch, Test, and Report roles for the selected candidate.
+4. Rehearse: run Recon, Attacker, Browser Replay, Judge, Forensics, Patch, Test, and Report roles for the selected candidate.
 5. Verify: replay the original safe proof after patching and report whether it is blocked.
 6. Write: emit artifacts under the target repo's `breachlab/` folder.
 
@@ -74,6 +74,7 @@ Run roles sequentially unless the user explicitly authorizes subagents.
 
 - Recon: maps target files, auth flow, data access, tests, and fixtures.
 - Attacker: confirms the selected breach with static proof, local tests, localhost requests, or approved computer-use replay.
+- Browser Replay: when a localhost UI is available, captures approved before/after browser evidence using Codex browser-use if available, a repo-provided Playwright helper if present, or a manual localhost replay fallback.
 - Judge: accepts only reproducible, scoped, meaningful findings.
 - Forensics: writes incident timeline, evidence board, blast radius, and detection notes.
 - Patch: makes the smallest safe remediation that preserves project style.
@@ -95,9 +96,29 @@ breachlab/scorecards/cross-tenant-document-access.json
 breachlab/patches/cross-tenant-document-access.diff
 breachlab/evidence/cross-tenant-document-access-before.png
 breachlab/evidence/cross-tenant-document-access-after.png
+breachlab/evidence/cross-tenant-document-access-browser-replay.json
 ```
 
 Evidence images are required only when browser or computer-use replay is available.
+
+## Browser Replay Agent
+
+For UI-backed web apps, prefer a safe localhost browser replay after Attacker finds a credible proof path.
+
+Order of preference:
+
+1. Use Codex browser-use or in-app browser tools when available and the target is localhost or explicitly authorized staging.
+2. Use a repo-provided Playwright helper when present, such as `npm run replay:browser` in the BreachLab sample app.
+3. Fall back to request/test evidence and clearly report that browser evidence was unavailable.
+
+The replay must be defensive and narrow:
+
+- use seeded demo users or test credentials only
+- avoid real customer data and production secrets
+- capture before evidence showing the issue
+- replay the same path after remediation
+- capture after evidence showing the original path is blocked
+- write screenshots and replay JSON under `breachlab/evidence/`
 
 ## Safety
 

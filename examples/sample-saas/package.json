@@ -5,6 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "node src/server.js",
+    "replay:browser": "node scripts/browser-replay.js",
     "test": "jest --runInBand"
   },
   "dependencies": {
@@ -12,6 +13,7 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",
+    "playwright": "^1.59.1",
     "supertest": "^6.3.4"
   }
 }
