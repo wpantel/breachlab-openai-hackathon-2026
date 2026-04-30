@@ -1,0 +1,3 @@
+display_name: BreachLab
+short_description: Rehearse authorized repo-local breaches, patch the root cause, and write security artifacts.
+default_prompt: Run BreachLab on this repo. Discover plausible breach simulations, let me choose one, then verify, patch, test, and report the selected breach.
