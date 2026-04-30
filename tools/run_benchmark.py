@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+
+SAFE_FILENAME_COMPONENT = re.compile(r"^[a-z0-9._-]+$")
 
 REQUIRED_CHALLENGE_KEYS = {
     "id",
@@ -42,8 +45,17 @@ def result_score(metrics):
     return sum(weight for key, weight in weights.items() if metrics.get(key))
 
 
+def safe_filename_component(value, label):
+    if not value or not SAFE_FILENAME_COMPONENT.fullmatch(value):
+        raise ValueError(f"unsafe filename component for {label}: {value}")
+    return value
+
+
 def write_result(args):
     challenge = load_challenge(args.challenge)
+    challenge_id = safe_filename_component(challenge["id"], "challenge id")
+    workflow = safe_filename_component(args.workflow, "workflow")
+    model = safe_filename_component(args.model, "model")
     metrics = {
         "candidate_found": args.candidate_found,
         "breach_confirmed": args.breach_confirmed,
@@ -53,7 +65,7 @@ def write_result(args):
         "original_replay_blocked": args.original_replay_blocked,
         "tests_passed": args.tests_passed,
     }
-    now = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    now = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     payload = {
         "challenge_id": challenge["id"],
         "category": challenge["category"],
@@ -65,7 +77,7 @@ def write_result(args):
     }
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    filename = f"{challenge['id']}-{args.workflow}-{args.model}-{now}.json"
+    filename = f"{challenge_id}-{workflow}-{model}-{now}.json"
     result_path = output_dir / filename
     result_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
     return {"result_path": str(result_path), "score": payload["score"]}

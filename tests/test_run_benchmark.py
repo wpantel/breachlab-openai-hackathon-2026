@@ -66,6 +66,75 @@ class BenchmarkRunnerTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("challenge", result.stderr.lower())
 
+    def test_rejects_unsafe_filename_component(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            challenge = repo / "challenge.json"
+            challenge.write_text(
+                json.dumps(
+                    {
+                        "id": "../escaped",
+                        "category": "broken_access_control",
+                        "repo": "examples/sample-saas",
+                        "target_files": ["src/app.js"],
+                        "setup_command": "npm install",
+                        "test_command": "npm test -- documents",
+                        "success_condition": "cross-team document access is blocked",
+                        "oracle": {},
+                    }
+                )
+            )
+            out_dir = repo / "results"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--challenge",
+                    str(challenge),
+                    "--model",
+                    "model-a",
+                    "--workflow",
+                    "breachlab",
+                    "--output-dir",
+                    str(out_dir),
+                ],
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("unsafe filename component", result.stderr.lower())
+            self.assertFalse((repo / "escaped-breachlab-model-a").exists())
+
+    def test_same_second_runs_create_distinct_result_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out_dir = Path(tmp) / "results"
+            challenge = ROOT / "benchmarks" / "challenges" / "team-doc-idor.json"
+            command = [
+                sys.executable,
+                str(SCRIPT),
+                "--challenge",
+                str(challenge),
+                "--model",
+                "model-a",
+                "--workflow",
+                "breachlab",
+                "--output-dir",
+                str(out_dir),
+                "--candidate-found",
+            ]
+
+            first = subprocess.run(command, check=True, text=True, capture_output=True)
+            second = subprocess.run(command, check=True, text=True, capture_output=True)
+
+            first_path = Path(json.loads(first.stdout)["result_path"])
+            second_path = Path(json.loads(second.stdout)["result_path"])
+            self.assertNotEqual(first_path, second_path)
+            self.assertTrue(first_path.exists())
+            self.assertTrue(second_path.exists())
+            self.assertEqual(len(list(out_dir.glob("*.json"))), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
