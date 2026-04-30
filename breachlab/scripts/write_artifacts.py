@@ -2,6 +2,7 @@
 import argparse
 import json
 import re
+import stat
 import sys
 from pathlib import Path
 
@@ -17,14 +18,63 @@ def require(data, key):
     return value
 
 
-def write_text(path, content, written, root):
+def is_relative_to(path, root):
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+def reject_symlink_components(path, repo):
+    try:
+        relative = path.relative_to(repo)
+    except ValueError as exc:
+        raise ValueError("artifact path must stay under repository root") from exc
+
+    current = repo
+    for part in relative.parts[:-1]:
+        current = current / part
+        try:
+            current.lstat()
+        except FileNotFoundError:
+            continue
+        if current.is_symlink():
+            rel_path = current.relative_to(repo).as_posix()
+            raise ValueError(f"Refusing to write through symlinked path: {rel_path}")
+        if not current.is_dir():
+            rel_path = current.relative_to(repo).as_posix()
+            raise ValueError(f"Refusing to write under non-directory path: {rel_path}")
+
+    try:
+        target_stat = path.lstat()
+    except FileNotFoundError:
+        return
+    if stat.S_ISLNK(target_stat.st_mode):
+        rel_path = path.relative_to(repo).as_posix()
+        raise ValueError(f"Refusing to overwrite symlinked artifact: {rel_path}")
+    if not stat.S_ISREG(target_stat.st_mode):
+        rel_path = path.relative_to(repo).as_posix()
+        raise ValueError(f"Refusing to overwrite non-regular artifact: {rel_path}")
+
+
+def prepare_artifact_path(path, repo):
+    reject_symlink_components(path, repo)
     path.parent.mkdir(parents=True, exist_ok=True)
+    reject_symlink_components(path, repo)
+    if not is_relative_to(path.parent.resolve(), repo):
+        rel_path = path.parent.relative_to(repo).as_posix()
+        raise ValueError(f"Artifact parent escaped repository root: {rel_path}")
+
+
+def write_text(path, content, written, root):
+    prepare_artifact_path(path, root)
     path.write_text(content)
     written.append(path.relative_to(root).as_posix())
 
 
 def write_json(path, content, written, root):
-    path.parent.mkdir(parents=True, exist_ok=True)
+    prepare_artifact_path(path, root)
     path.write_text(json.dumps(content, indent=2, sort_keys=True) + "\n")
     written.append(path.relative_to(root).as_posix())
 

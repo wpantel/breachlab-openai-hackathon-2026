@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -85,6 +86,93 @@ class WriteArtifactsTests(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("timestamp", result.stderr)
+
+    def test_rejects_symlinked_breachlab_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = root / "repo"
+            outside = root / "outside"
+            repo.mkdir()
+            outside.mkdir()
+            (repo / "breachlab").symlink_to(outside, target_is_directory=True)
+            payload_path = repo / "payload.json"
+            payload_path.write_text(
+                json.dumps(
+                    {
+                        "timestamp": "2026-04-30T120000Z",
+                        "slug": "cross-tenant-document-access",
+                        "report": "# Report\n",
+                    }
+                )
+            )
+
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), str(repo), str(payload_path)],
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("symlink", result.stderr)
+            self.assertFalse((outside / "reports" / "cross-tenant-document-access-report.md").exists())
+
+    def test_rejects_symlinked_artifact_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = root / "repo"
+            outside = root / "outside.md"
+            report_dir = repo / "breachlab" / "reports"
+            report_dir.mkdir(parents=True)
+            outside.write_text("outside\n")
+            (report_dir / "cross-tenant-document-access-report.md").symlink_to(outside)
+            payload_path = repo / "payload.json"
+            payload_path.write_text(
+                json.dumps(
+                    {
+                        "timestamp": "2026-04-30T120000Z",
+                        "slug": "cross-tenant-document-access",
+                        "report": "# Report\n",
+                    }
+                )
+            )
+
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), str(repo), str(payload_path)],
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("symlink", result.stderr)
+            self.assertEqual(outside.read_text(), "outside\n")
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "mkfifo is not available on this platform")
+    def test_rejects_non_regular_artifact_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            report_dir = repo / "breachlab" / "reports"
+            report_dir.mkdir(parents=True)
+            os.mkfifo(report_dir / "cross-tenant-document-access-report.md")
+            payload_path = repo / "payload.json"
+            payload_path.write_text(
+                json.dumps(
+                    {
+                        "timestamp": "2026-04-30T120000Z",
+                        "slug": "cross-tenant-document-access",
+                        "report": "# Report\n",
+                    }
+                )
+            )
+
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), str(repo), str(payload_path)],
+                text=True,
+                capture_output=True,
+                timeout=5,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("non-regular", result.stderr)
 
 
 if __name__ == "__main__":

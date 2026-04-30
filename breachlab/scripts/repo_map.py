@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import os
 import re
+import stat
 from pathlib import Path
 
 
@@ -39,6 +41,7 @@ EXPRESS_ROUTE_RE = re.compile(
     r"|\bexpress\s*\.\s*Router\s*\(",
     re.I,
 )
+MAX_TEXT_BYTES = 1_000_000
 
 
 def rel(path, root):
@@ -46,15 +49,33 @@ def rel(path, root):
 
 
 def iter_files(root):
-    for path in sorted(root.rglob("*")):
-        if any(part in IGNORE_DIRS for part in path.parts):
-            continue
-        if path.is_file():
-            yield path
+    for dirpath, dirnames, filenames in os.walk(root, topdown=True, followlinks=False):
+        directory = Path(dirpath)
+        dirnames[:] = sorted(
+            name
+            for name in dirnames
+            if name not in IGNORE_DIRS and not (directory / name).is_symlink()
+        )
+        for filename in sorted(filenames):
+            path = directory / filename
+            if path.is_symlink():
+                continue
+            try:
+                path.relative_to(root)
+            except ValueError:
+                continue
+            try:
+                path_stat = path.stat(follow_symlinks=False)
+            except OSError:
+                continue
+            if stat.S_ISREG(path_stat.st_mode):
+                yield path
 
 
 def safe_text(path):
     try:
+        if path.stat(follow_symlinks=False).st_size > MAX_TEXT_BYTES:
+            return ""
         return path.read_text(errors="ignore")
     except OSError:
         return ""
