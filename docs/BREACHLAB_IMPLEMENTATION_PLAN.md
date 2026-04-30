@@ -551,6 +551,14 @@ Parallel-friendly split:
 - Person C: dashboard and creative arena modal
 - Person D: benchmark schema and runner
 
+Subagent-ready execution plans:
+
+- `docs/superpowers/plans/2026-04-30-breachlab-skill-package.md`
+- `docs/superpowers/plans/2026-04-30-breachlab-helper-scripts.md`
+- `docs/superpowers/plans/2026-04-30-breachlab-dashboard.md`
+- `docs/superpowers/plans/2026-04-30-breachlab-sample-repo.md`
+- `docs/superpowers/plans/2026-04-30-breachlab-benchmark-harness.md`
+
 Critical path:
 
 ```text

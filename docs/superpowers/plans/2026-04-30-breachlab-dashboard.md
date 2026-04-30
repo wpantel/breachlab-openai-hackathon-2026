@@ -1,0 +1,575 @@
+# BreachLab Dashboard Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Build the Security Arena static dashboard with a creative event-driven arena modal.
+
+**Architecture:** A file-based HTML/CSS/JS app renders fixture mission data, agent cards, timeline, scorecard, benchmark comparison, and a modal animation driven by mission events.
+
+**Tech Stack:** HTML, CSS, vanilla JavaScript.
+
+---
+
+## File Structure
+
+- Create: `dashboard/index.html` - semantic page shell and modal markup.
+- Create: `dashboard/styles.css` - responsive styling and arena animations.
+- Create: `dashboard/app.js` - fixture data, rendering, and event-driven modal state.
+
+## Tasks
+
+### Task 1: Create Dashboard HTML
+
+**Files:**
+- Create: `dashboard/index.html`
+
+- [ ] **Step 1: Create dashboard directory**
+
+Run:
+
+```bash
+mkdir -p dashboard
+```
+
+Expected: command exits with status `0`.
+
+- [ ] **Step 2: Write `index.html`**
+
+Create `dashboard/index.html` with:
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BreachLab Security Arena</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Codex Skill Demo</p>
+          <h1>BreachLab</h1>
+          <p class="lede">Repo-native breach rehearsal with verified patches, tests, replay, and reports.</p>
+        </div>
+        <div class="actions">
+          <button id="analyzeButton" type="button">Analyze Repo</button>
+          <button id="startMissionButton" type="button" disabled>Start Mission</button>
+          <button id="arenaButton" type="button" class="secondary" disabled>Open Arena</button>
+        </div>
+      </header>
+
+      <section class="workflow">
+        <article id="phaseDiscovery" class="phase active"><span>01</span><strong>Discovery</strong><p>Map repo surfaces and propose plausible breach simulations.</p></article>
+        <article id="phaseSelection" class="phase"><span>02</span><strong>Selection</strong><p>User chooses one candidate for confirmation.</p></article>
+        <article id="phaseMission" class="phase"><span>03</span><strong>Mission</strong><p>Agents verify, patch, test, replay, score, and report.</p></article>
+      </section>
+
+      <section class="panel discovery">
+        <div>
+          <p class="eyebrow">Discovery</p>
+          <h2 id="discoveryTitle">Ready to inspect repository</h2>
+          <p id="discoverySummary">Run discovery to generate candidate breach simulations.</p>
+        </div>
+        <div id="candidateList" class="candidate-list"></div>
+      </section>
+
+      <section class="mission-grid">
+        <article class="panel">
+          <p class="eyebrow">Mission Board</p>
+          <div id="agentBoard" class="agent-board"></div>
+        </article>
+        <article class="panel">
+          <p class="eyebrow">Attack Replay</p>
+          <ol id="timeline" class="timeline"></ol>
+        </article>
+        <article class="panel">
+          <p class="eyebrow">Scorecard</p>
+          <div id="scorecard" class="scorecard"></div>
+        </article>
+      </section>
+
+      <section class="panel benchmark">
+        <div>
+          <p class="eyebrow">Benchmark</p>
+          <h2>Workflow comparison</h2>
+        </div>
+        <div id="benchmarkRows" class="benchmark-rows"></div>
+      </section>
+    </main>
+
+    <div id="arenaModal" class="modal" aria-hidden="true">
+      <div class="modal-content" role="dialog" aria-labelledby="arenaTitle">
+        <button id="closeArenaButton" class="close" type="button" aria-label="Close arena">x</button>
+        <h2 id="arenaTitle">Security Arena</h2>
+        <div class="arena">
+          <div id="attacker" class="fighter attacker">RED</div>
+          <div id="judge" class="judge">JUDGE</div>
+          <div id="defender" class="fighter defender">BLUE</div>
+          <div id="shield" class="shield"></div>
+        </div>
+        <div class="meters">
+          <label>Risk <span><i id="riskMeter"></i></span></label>
+          <label>Patch confidence <span><i id="patchMeter"></i></span></label>
+        </div>
+        <p id="arenaCaption" class="arena-caption">Waiting for mission event.</p>
+        <button id="nextEventButton" type="button">Next Event</button>
+      </div>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
+```
+
+### Task 2: Create Dashboard Styles
+
+**Files:**
+- Create: `dashboard/styles.css`
+
+- [ ] **Step 1: Write `styles.css`**
+
+Create `dashboard/styles.css` with:
+
+```css
+:root {
+  color-scheme: dark;
+  --bg: #101214;
+  --panel: #181d20;
+  --panel-2: #20272b;
+  --line: #344044;
+  --text: #f4f7f2;
+  --muted: #9facaa;
+  --red: #ff665c;
+  --blue: #58b8ff;
+  --green: #7fe09d;
+  --gold: #f2c14e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 0%, rgba(255, 102, 92, 0.18), transparent 28rem),
+    radial-gradient(circle at 85% 12%, rgba(88, 184, 255, 0.16), transparent 30rem),
+    var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.shell {
+  width: min(1180px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 32px 0;
+}
+
+.topbar, .workflow, .mission-grid, .benchmark { margin-bottom: 18px; }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+h1, h2, p { margin: 0; }
+h1 { font-size: clamp(42px, 7vw, 86px); line-height: 0.9; }
+h2 { font-size: 20px; }
+.lede { color: var(--muted); margin-top: 10px; max-width: 620px; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+button {
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: var(--green);
+  color: #07100b;
+  font-weight: 800;
+  cursor: pointer;
+}
+button.secondary { background: transparent; border-color: var(--line); color: var(--text); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.workflow, .mission-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.panel, .phase {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(24, 29, 32, 0.9);
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.22);
+}
+
+.phase { min-height: 124px; padding: 16px; }
+.phase span { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; }
+.phase strong { display: block; margin: 8px 0; font-size: 17px; }
+.phase p { color: var(--muted); font-size: 14px; }
+.phase.active { border-color: rgba(127, 224, 157, 0.7); box-shadow: inset 0 0 0 1px rgba(127, 224, 157, 0.2); }
+
+.panel { padding: 18px; }
+.discovery { display: grid; grid-template-columns: minmax(260px, 0.8fr) minmax(360px, 1.4fr); gap: 18px; }
+.candidate-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.candidate {
+  min-height: 128px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #121618;
+  color: var(--text);
+  text-align: left;
+}
+.candidate.selected { border-color: var(--green); background: rgba(127, 224, 157, 0.1); }
+.candidate span { display: block; color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+.agent-board, .scorecard, .benchmark-rows { display: grid; gap: 10px; }
+.agent-row, .score-row, .benchmark-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #121618;
+}
+.agent-row.running { border-color: var(--gold); }
+.agent-row.complete { border-color: var(--green); }
+.timeline { display: grid; gap: 10px; margin: 0; padding-left: 20px; color: var(--muted); }
+.timeline strong { color: var(--text); }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 20px;
+}
+.modal.open { display: grid; }
+.modal-content {
+  position: relative;
+  width: min(720px, 100%);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #111517;
+  padding: 22px;
+}
+.close { position: absolute; right: 14px; top: 14px; min-height: 34px; width: 34px; padding: 0; }
+.arena {
+  position: relative;
+  height: 280px;
+  margin: 18px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #172126, #0f1214);
+}
+.fighter, .judge, .shield {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  font-weight: 900;
+}
+.fighter { width: 86px; height: 86px; bottom: 42px; }
+.attacker { left: 58px; background: rgba(255, 102, 92, 0.22); color: var(--red); }
+.defender { right: 58px; background: rgba(88, 184, 255, 0.22); color: var(--blue); }
+.judge { top: 26px; left: calc(50% - 42px); width: 84px; height: 42px; background: rgba(242, 193, 78, 0.18); color: var(--gold); }
+.shield { right: 135px; bottom: 32px; width: 18px; height: 108px; background: rgba(127, 224, 157, 0); border: 2px solid rgba(127, 224, 157, 0); }
+.modal.attack .attacker { animation: strike 600ms ease; }
+.modal.shield .shield { background: rgba(127, 224, 157, 0.18); border-color: var(--green); }
+.modal.blocked .attacker { animation: bounce 650ms ease; }
+.modal.verified .judge { box-shadow: 0 0 0 3px rgba(242, 193, 78, 0.24); }
+
+.meters { display: grid; gap: 10px; }
+.meters label { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; }
+.meters span { height: 12px; overflow: hidden; border-radius: 999px; background: #0e1112; }
+.meters i { display: block; width: 10%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--red), var(--gold), var(--green)); transition: width 350ms ease; }
+.arena-caption { margin: 14px 0; color: var(--muted); }
+
+@keyframes strike {
+  50% { transform: translateX(320px) scale(1.08); }
+}
+@keyframes bounce {
+  45% { transform: translateX(270px); }
+  70% { transform: translateX(180px); }
+}
+
+@media (max-width: 820px) {
+  .topbar { flex-direction: column; }
+  .workflow, .mission-grid, .discovery { grid-template-columns: 1fr; }
+  .candidate-list { grid-template-columns: 1fr; }
+}
+```
+
+### Task 3: Create Dashboard Logic
+
+**Files:**
+- Create: `dashboard/app.js`
+
+- [ ] **Step 1: Write `app.js`**
+
+Create `dashboard/app.js` with:
+
+```javascript
+const mission = {
+  candidates: [
+    {
+      id: "cross-tenant-document-access",
+      title: "Cross-Tenant Document Access",
+      category: "Broken access control",
+      target: "app/api/documents/[id]/route.ts",
+      impact: "Private workspace document exposure",
+      confidence: "High",
+    },
+    {
+      id: "admin-export-abuse",
+      title: "Admin Export Abuse",
+      category: "Privilege escalation",
+      target: "app/api/admin/export/route.ts",
+      impact: "Bulk data export",
+      confidence: "Medium",
+    },
+    {
+      id: "support-bot-prompt-injection",
+      title: "Support Bot Prompt Injection",
+      category: "AI app security",
+      target: "lib/support-bot/systemPrompt.ts",
+      impact: "Hidden instruction leakage",
+      confidence: "Medium",
+    },
+    {
+      id: "unsafe-url-preview",
+      title: "Unsafe URL Preview",
+      category: "Input and upload abuse",
+      target: "app/api/preview/route.ts",
+      impact: "Server-side request forgery risk",
+      confidence: "Medium",
+    },
+  ],
+  agents: ["Recon", "Attacker", "Judge", "Forensics", "Patch", "Test", "Report"],
+  events: [
+    { type: "recon_started", label: "Recon mapped the target route", risk: 18, patch: 5 },
+    { type: "breach_confirmed", label: "Attacker confirmed cross-tenant access", risk: 88, patch: 5 },
+    { type: "judge_accepted", label: "Judge accepted the evidence", risk: 92, patch: 10 },
+    { type: "forensics_started", label: "Forensics built the incident replay", risk: 78, patch: 18 },
+    { type: "patch_applied", label: "Defender patched the root cause", risk: 42, patch: 72 },
+    { type: "tests_passed", label: "Regression tests passed", risk: 24, patch: 90 },
+    { type: "replay_blocked", label: "Original replay is blocked", risk: 12, patch: 96 },
+    { type: "report_written", label: "Report and scorecard written", risk: 10, patch: 98 },
+  ],
+  timeline: [
+    ["00:00", "Recon", "Attacker discovers document route from normal navigation."],
+    ["00:31", "Initial Access", "Attacker logs in as a regular workspace member."],
+    ["01:04", "Probe", "Attacker opens an allowed document."],
+    ["01:21", "Enumeration", "Attacker changes the document id and sees another workspace's content."],
+    ["03:10", "Remediation", "Patch scopes lookup by workspace membership."],
+    ["04:00", "Verification", "Original replay returns 404."],
+  ],
+  scorecard: {
+    Exploitability: "8.9 / 10",
+    "Blast radius": "7.4 / 10",
+    "Detection difficulty": "6.5 / 10",
+    "Patch confidence": "9.0 / 10",
+    "Regression coverage": "8.6 / 10",
+    "Before risk": "High",
+    "After risk": "Low",
+  },
+  benchmarks: [
+    ["BreachLab multi-agent workflow", "4 / 5 fixed", "92"],
+    ["Single-agent baseline", "2 / 5 fixed", "58"],
+    ["Scanner-only baseline", "0 / 5 fixed", "31"],
+  ],
+};
+
+let selectedCandidate = null;
+let eventIndex = 0;
+let missionStarted = false;
+
+const $ = (id) => document.getElementById(id);
+
+function renderCandidates() {
+  $("candidateList").replaceChildren(
+    ...mission.candidates.map((candidate) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `candidate${selectedCandidate?.id === candidate.id ? " selected" : ""}`;
+      button.innerHTML = `<strong>${candidate.title}</strong><span>${candidate.category}</span><span>${candidate.target}</span><span>Impact: ${candidate.impact}</span><span>Confidence: ${candidate.confidence}</span>`;
+      button.addEventListener("click", () => {
+        selectedCandidate = candidate;
+        $("startMissionButton").disabled = false;
+        renderCandidates();
+        renderPhases();
+      });
+      return button;
+    }),
+  );
+}
+
+function renderAgents() {
+  $("agentBoard").replaceChildren(
+    ...mission.agents.map((name, index) => {
+      const row = document.createElement("div");
+      const state = missionStarted ? (index < Math.min(eventIndex, mission.agents.length) ? "complete" : index === eventIndex ? "running" : "queued") : "queued";
+      row.className = `agent-row ${state}`;
+      row.innerHTML = `<strong>${name}</strong><span>${state}</span>`;
+      return row;
+    }),
+  );
+}
+
+function renderTimeline() {
+  $("timeline").replaceChildren(
+    ...mission.timeline.map(([time, phase, event]) => {
+      const item = document.createElement("li");
+      item.innerHTML = `<strong>${time} ${phase}</strong><br>${event}`;
+      return item;
+    }),
+  );
+}
+
+function renderScorecard() {
+  $("scorecard").replaceChildren(
+    ...Object.entries(mission.scorecard).map(([label, value]) => {
+      const row = document.createElement("div");
+      row.className = "score-row";
+      row.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+      return row;
+    }),
+  );
+}
+
+function renderBenchmarks() {
+  $("benchmarkRows").replaceChildren(
+    ...mission.benchmarks.map(([name, result, score]) => {
+      const row = document.createElement("div");
+      row.className = "benchmark-row";
+      row.innerHTML = `<strong>${name}</strong><span>${result}</span><span>${score}</span>`;
+      return row;
+    }),
+  );
+}
+
+function renderPhases() {
+  $("phaseDiscovery").classList.toggle("active", !selectedCandidate);
+  $("phaseSelection").classList.toggle("active", Boolean(selectedCandidate) && !missionStarted);
+  $("phaseMission").classList.toggle("active", missionStarted);
+}
+
+function analyzeRepo() {
+  $("discoveryTitle").textContent = "Discovery found 4 candidate breach simulations";
+  $("discoverySummary").textContent = "Choose one candidate to start the BreachLab mission. These are plausible simulations until Judge validates local evidence.";
+  renderCandidates();
+  renderPhases();
+}
+
+function startMission() {
+  missionStarted = true;
+  eventIndex = 0;
+  $("arenaButton").disabled = false;
+  renderAgents();
+  renderPhases();
+  openArena();
+}
+
+function openArena() {
+  $("arenaModal").classList.add("open");
+  $("arenaModal").setAttribute("aria-hidden", "false");
+  applyEvent(mission.events[eventIndex]);
+}
+
+function closeArena() {
+  $("arenaModal").classList.remove("open");
+  $("arenaModal").setAttribute("aria-hidden", "true");
+}
+
+function applyEvent(event) {
+  const modal = $("arenaModal");
+  modal.classList.remove("attack", "shield", "blocked", "verified");
+  if (event.type === "breach_confirmed") modal.classList.add("attack");
+  if (event.type === "judge_accepted") modal.classList.add("verified");
+  if (event.type === "patch_applied" || event.type === "tests_passed") modal.classList.add("shield");
+  if (event.type === "replay_blocked") modal.classList.add("shield", "blocked");
+  $("riskMeter").style.width = `${event.risk}%`;
+  $("patchMeter").style.width = `${event.patch}%`;
+  $("arenaCaption").textContent = event.label;
+  renderAgents();
+}
+
+function nextEvent() {
+  eventIndex = Math.min(eventIndex + 1, mission.events.length - 1);
+  applyEvent(mission.events[eventIndex]);
+}
+
+$("analyzeButton").addEventListener("click", analyzeRepo);
+$("startMissionButton").addEventListener("click", startMission);
+$("arenaButton").addEventListener("click", openArena);
+$("closeArenaButton").addEventListener("click", closeArena);
+$("nextEventButton").addEventListener("click", nextEvent);
+
+renderCandidates();
+renderAgents();
+renderTimeline();
+renderScorecard();
+renderBenchmarks();
+renderPhases();
+```
+
+### Task 4: Validate Dashboard Locally
+
+**Files:**
+- Inspect: `dashboard/index.html`
+- Inspect: `dashboard/styles.css`
+- Inspect: `dashboard/app.js`
+
+- [ ] **Step 1: Check JavaScript syntax**
+
+Run:
+
+```bash
+node --check dashboard/app.js
+```
+
+Expected: no output and exit status `0`.
+
+- [ ] **Step 2: Check required UI labels exist**
+
+Run:
+
+```bash
+grep -q "BreachLab" dashboard/index.html
+grep -q "Security Arena" dashboard/index.html
+grep -q "Creative arena" docs/BREACHLAB_IMPLEMENTATION_PLAN.md
+echo "dashboard-labels-ok"
+```
+
+Expected output:
+
+```text
+dashboard-labels-ok
+```
+
+- [ ] **Step 3: Commit**
+
+Run:
+
+```bash
+git add dashboard
+git commit -m "feat: add Security Arena dashboard"
+```
+
+Expected: commit succeeds.
