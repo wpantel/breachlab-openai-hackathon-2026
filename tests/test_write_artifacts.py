@@ -60,6 +60,32 @@ class WriteArtifactsTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("slug", result.stderr)
 
+    def test_rejects_timestamp_path_traversal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            payload_path = repo / "payload.json"
+            payload_path.write_text(
+                json.dumps(
+                    {
+                        "timestamp": "../../../outside",
+                        "slug": "cross-tenant-document-access",
+                        "discovery": {
+                            "candidates": [{"id": "cross-tenant-document-access"}],
+                            "summary": "# Discovery\n",
+                        },
+                    }
+                )
+            )
+
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), str(repo), str(payload_path)],
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("timestamp", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

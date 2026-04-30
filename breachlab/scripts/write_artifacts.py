@@ -7,6 +7,7 @@ from pathlib import Path
 
 
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+TIMESTAMP_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z$")
 
 
 def require(data, key):
@@ -34,6 +35,8 @@ def write_artifacts(repo, data):
     timestamp = require(data, "timestamp")
     if not SLUG_RE.match(slug):
         raise ValueError("slug must be lowercase kebab-case")
+    if not TIMESTAMP_RE.match(timestamp):
+        raise ValueError("timestamp must match YYYY-MM-DDTHHMMSSZ")
 
     base = repo / "breachlab"
     written = []
