@@ -71,6 +71,7 @@ const mission = {
 let selectedCandidate = null;
 let eventIndex = 0;
 let missionStarted = false;
+let arenaOpener = null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -159,14 +160,20 @@ function startMission() {
 }
 
 function openArena() {
+  arenaOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   $("arenaModal").classList.add("open");
   $("arenaModal").setAttribute("aria-hidden", "false");
   applyEvent(mission.events[eventIndex]);
+  $("closeArenaButton").focus();
 }
 
 function closeArena() {
   $("arenaModal").classList.remove("open");
   $("arenaModal").setAttribute("aria-hidden", "true");
+  if (arenaOpener && document.contains(arenaOpener)) {
+    arenaOpener.focus();
+  }
+  arenaOpener = null;
 }
 
 function applyEvent(event) {
@@ -187,11 +194,18 @@ function nextEvent() {
   applyEvent(mission.events[eventIndex]);
 }
 
+function handleKeydown(event) {
+  if (event.key === "Escape" && $("arenaModal").classList.contains("open")) {
+    closeArena();
+  }
+}
+
 $("analyzeButton").addEventListener("click", analyzeRepo);
 $("startMissionButton").addEventListener("click", startMission);
 $("arenaButton").addEventListener("click", openArena);
 $("closeArenaButton").addEventListener("click", closeArena);
 $("nextEventButton").addEventListener("click", nextEvent);
+document.addEventListener("keydown", handleKeydown);
 
 renderCandidates();
 renderAgents();
