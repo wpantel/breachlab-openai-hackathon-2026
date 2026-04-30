@@ -19,6 +19,7 @@ breachlab/patches/cross-tenant-document-access.diff
 breachlab/evidence/cross-tenant-document-access-before.png
 breachlab/evidence/cross-tenant-document-access-after.png
 breachlab/evidence/cross-tenant-document-access-browser-replay.json
+breachlab/evidence/cross-tenant-document-access-browser-replay.webm
 ```
 
 ## Markdown Report Example
@@ -48,6 +49,7 @@ BreachLab confirmed a broken access control flaw in the document API. A low-priv
 - Before patch: cross-team document request returned 200 and Blue Team Budget.
 - After patch: same request returned 404 and Document not found.
 - Browser replay: before and after screenshots are stored under breachlab/evidence when UI replay is available.
+- Replay video: a `.webm` walkthrough is stored under breachlab/evidence when recording is available.
 
 ## Root Cause
 
@@ -92,6 +94,7 @@ Other object lookup routes should be reviewed for the same ownership pattern.
   "tool": "playwright",
   "app": "Northstar Rooms",
   "target": "localhost sample SaaS",
+  "video": "breachlab/evidence/cross-tenant-document-access-browser-replay.webm",
   "evidence": [
     {
       "mode": "before",

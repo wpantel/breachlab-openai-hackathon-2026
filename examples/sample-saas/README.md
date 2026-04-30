@@ -71,10 +71,24 @@ Expected artifacts:
 breachlab/evidence/cross-tenant-document-access-before.png
 breachlab/evidence/cross-tenant-document-access-after.png
 breachlab/evidence/cross-tenant-document-access-browser-replay.json
+breachlab/evidence/cross-tenant-document-access-browser-replay.webm
 ```
 
 For a visible browser during the pitch:
 
 ```bash
 npm run replay:browser -- --headed
+```
+
+Open the saved replay video:
+
+```bash
+open breachlab/evidence/cross-tenant-document-access-browser-replay.webm
+```
+
+Make the replay faster or slower:
+
+```bash
+npm run replay:browser -- --slow-ms 100
+npm run replay:browser -- --slow-ms 800
 ```

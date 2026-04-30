@@ -7,6 +7,7 @@ const path = require("path");
 
 const SLUG = "cross-tenant-document-access";
 const DEFAULT_PORT = 3177;
+const DEFAULT_SLOW_MS = 350;
 const ROOT = path.resolve(__dirname, "..");
 const EVIDENCE_DIR = path.join(ROOT, "breachlab", "evidence");
 
@@ -16,6 +17,8 @@ function parseArgs(argv) {
     port: DEFAULT_PORT,
     outDir: EVIDENCE_DIR,
     headed: false,
+    video: true,
+    slowMs: DEFAULT_SLOW_MS,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -24,8 +27,10 @@ function parseArgs(argv) {
     else if (arg === "--port") args.port = Number(argv[++index]);
     else if (arg === "--out-dir") args.outDir = path.resolve(argv[++index]);
     else if (arg === "--headed") args.headed = true;
+    else if (arg === "--no-video") args.video = false;
+    else if (arg === "--slow-ms") args.slowMs = Number(argv[++index]);
     else if (arg === "--help") {
-      console.log(`Usage: npm run replay:browser -- [--mode before|after|both] [--port 3177] [--out-dir breachlab/evidence] [--headed]`);
+      console.log(`Usage: npm run replay:browser -- [--mode before|after|both] [--port 3177] [--out-dir breachlab/evidence] [--headed] [--no-video] [--slow-ms 350]`);
       process.exit(0);
     }
   }
@@ -36,8 +41,17 @@ function parseArgs(argv) {
   if (!Number.isInteger(args.port) || args.port < 1024 || args.port > 65535) {
     throw new Error("--port must be an integer between 1024 and 65535");
   }
+  if (!Number.isInteger(args.slowMs) || args.slowMs < 0 || args.slowMs > 5000) {
+    throw new Error("--slow-ms must be an integer between 0 and 5000");
+  }
 
   return args;
+}
+
+async function pause(page, args) {
+  if (args.slowMs > 0) {
+    await page.waitForTimeout(args.slowMs);
+  }
 }
 
 function waitForServer(url, timeoutMs = 10000) {
@@ -122,13 +136,17 @@ async function withServer(options, callback) {
   }
 }
 
-async function runBeforeReplay(page, baseUrl, screenshotPath) {
+async function runBeforeReplay(page, baseUrl, screenshotPath, args) {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await pause(page, args);
   await page.getByText("Red Team Roadmap").click();
   await page.getByRole("heading", { name: "Red Team Roadmap" }).waitFor();
+  await pause(page, args);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await pause(page, args);
   await page.getByText("Blue Team Budget").click();
   await page.getByRole("heading", { name: "Blue Team Budget" }).waitFor();
+  await pause(page, args);
   await page.screenshot({ path: screenshotPath, fullPage: true });
 
   return {
@@ -140,10 +158,12 @@ async function runBeforeReplay(page, baseUrl, screenshotPath) {
   };
 }
 
-async function runAfterReplay(page, baseUrl, screenshotPath) {
+async function runAfterReplay(page, baseUrl, screenshotPath, args) {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await pause(page, args);
   await page.getByText("Blue Team Budget").click();
   await page.getByRole("heading", { name: "Document not found" }).waitFor();
+  await pause(page, args);
   await page.screenshot({ path: screenshotPath, fullPage: true });
 
   return {
@@ -160,17 +180,27 @@ async function runReplay(args) {
 
   const beforePath = path.join(args.outDir, `${SLUG}-before.png`);
   const afterPath = path.join(args.outDir, `${SLUG}-after.png`);
+  const videoPath = path.join(args.outDir, `${SLUG}-browser-replay.webm`);
   const summaryPath = path.join(args.outDir, `${SLUG}-browser-replay.json`);
 
-  const browser = await chromium.launch({ headless: !args.headed });
-  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const browser = await chromium.launch({ headless: !args.headed, slowMo: args.slowMs });
+  const contextOptions = { viewport: { width: 1440, height: 1000 } };
+  if (args.video) {
+    contextOptions.recordVideo = {
+      dir: args.outDir,
+      size: { width: 1440, height: 1000 },
+    };
+  }
+  const context = await browser.newContext(contextOptions);
   const page = await context.newPage();
+  const video = page.video();
   const summary = {
     breach_id: SLUG,
     generated_at: new Date().toISOString(),
     tool: "playwright",
     app: "Northstar Rooms",
     target: "localhost sample SaaS",
+    video: args.video ? path.relative(ROOT, videoPath) : null,
     evidence: [],
   };
 
@@ -178,7 +208,7 @@ async function runReplay(args) {
     if (args.mode === "before" || args.mode === "both") {
       const evidence = await withServer(
         { port: args.port, secureDocuments: false },
-        (baseUrl) => runBeforeReplay(page, baseUrl, beforePath)
+        (baseUrl) => runBeforeReplay(page, baseUrl, beforePath, args)
       );
       summary.evidence.push(evidence);
     }
@@ -186,16 +216,23 @@ async function runReplay(args) {
     if (args.mode === "after" || args.mode === "both") {
       const evidence = await withServer(
         { port: args.port, secureDocuments: true },
-        (baseUrl) => runAfterReplay(page, baseUrl, afterPath)
+        (baseUrl) => runAfterReplay(page, baseUrl, afterPath, args)
       );
       summary.evidence.push(evidence);
     }
   } finally {
+    await context.close();
+    if (args.video && video) {
+      await video.saveAs(videoPath);
+      await video.delete().catch(() => {});
+    }
     await browser.close();
   }
 
   await fs.writeFile(summaryPath, `${JSON.stringify(summary, null, 2)}\n`);
-  console.log(JSON.stringify({ written: summary.evidence.map((item) => item.screenshot).concat(path.relative(ROOT, summaryPath)) }, null, 2));
+  const written = summary.evidence.map((item) => item.screenshot).concat(path.relative(ROOT, summaryPath));
+  if (summary.video) written.push(summary.video);
+  console.log(JSON.stringify({ written }, null, 2));
 }
 
 async function main() {

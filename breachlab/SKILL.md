@@ -97,6 +97,7 @@ breachlab/patches/cross-tenant-document-access.diff
 breachlab/evidence/cross-tenant-document-access-before.png
 breachlab/evidence/cross-tenant-document-access-after.png
 breachlab/evidence/cross-tenant-document-access-browser-replay.json
+breachlab/evidence/cross-tenant-document-access-browser-replay.webm
 ```
 
 Evidence images are required only when browser or computer-use replay is available.
@@ -119,6 +120,7 @@ The replay must be defensive and narrow:
 - replay the same path after remediation
 - capture after evidence showing the original path is blocked
 - write screenshots and replay JSON under `breachlab/evidence/`
+- save a replay video when the browser tooling supports recording
 
 ## Safety
 
