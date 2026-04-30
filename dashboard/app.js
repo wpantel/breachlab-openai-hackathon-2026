@@ -72,8 +72,17 @@ let selectedCandidate = null;
 let eventIndex = 0;
 let missionStarted = false;
 let arenaOpener = null;
+let shellFallbackState = null;
 
 const $ = (id) => document.getElementById(id);
+const focusableSelector = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(",");
 
 function renderCandidates() {
   $("candidateList").replaceChildren(
@@ -161,6 +170,7 @@ function startMission() {
 
 function openArena() {
   arenaOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  setShellDisabled(true);
   $("arenaModal").classList.add("open");
   $("arenaModal").setAttribute("aria-hidden", "false");
   applyEvent(mission.events[eventIndex]);
@@ -170,10 +180,48 @@ function openArena() {
 function closeArena() {
   $("arenaModal").classList.remove("open");
   $("arenaModal").setAttribute("aria-hidden", "true");
+  setShellDisabled(false);
   if (arenaOpener && document.contains(arenaOpener)) {
     arenaOpener.focus();
   }
   arenaOpener = null;
+}
+
+function setShellDisabled(disabled) {
+  const shell = document.querySelector(".shell");
+  if (!shell) return;
+
+  if ("inert" in shell) {
+    shell.inert = disabled;
+    return;
+  }
+
+  if (disabled) {
+    shellFallbackState = {
+      hadAriaHidden: shell.hasAttribute("aria-hidden"),
+      pointerEvents: shell.style.pointerEvents,
+      focusables: Array.from(shell.querySelectorAll(focusableSelector)).map((element) => ({
+        element,
+        tabindex: element.getAttribute("tabindex"),
+      })),
+    };
+    shell.setAttribute("aria-hidden", "true");
+    shell.style.pointerEvents = "none";
+    shellFallbackState.focusables.forEach(({ element }) => element.setAttribute("tabindex", "-1"));
+  } else if (shellFallbackState) {
+    if (!shellFallbackState.hadAriaHidden) {
+      shell.removeAttribute("aria-hidden");
+    }
+    shell.style.pointerEvents = shellFallbackState.pointerEvents;
+    shellFallbackState.focusables.forEach(({ element, tabindex }) => {
+      if (tabindex === null) {
+        element.removeAttribute("tabindex");
+      } else {
+        element.setAttribute("tabindex", tabindex);
+      }
+    });
+    shellFallbackState = null;
+  }
 }
 
 function applyEvent(event) {
@@ -195,8 +243,36 @@ function nextEvent() {
 }
 
 function handleKeydown(event) {
-  if (event.key === "Escape" && $("arenaModal").classList.contains("open")) {
+  if (!$("arenaModal").classList.contains("open")) return;
+
+  if (event.key === "Escape") {
     closeArena();
+    return;
+  }
+
+  if (event.key === "Tab") {
+    trapArenaFocus(event);
+  }
+}
+
+function trapArenaFocus(event) {
+  const content = $("arenaModal").querySelector(".modal-content");
+  const focusable = Array.from(content.querySelectorAll(focusableSelector)).filter((element) => {
+    const style = window.getComputedStyle(element);
+    return style.visibility !== "hidden" && style.display !== "none" && element.getClientRects().length > 0;
+  });
+  const first = focusable[0] || content;
+  const last = focusable[focusable.length - 1] || content;
+
+  if (!content.contains(document.activeElement)) {
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
+  } else if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
   }
 }
 
